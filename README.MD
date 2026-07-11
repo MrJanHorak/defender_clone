@@ -185,3 +185,8 @@ Here is a step-by-step path to programming the game:
 *   [ ] Implement a particle engine for explosions, laser trails, and thrust fire.
 *   [ ] Integrate Web Audio API synthesized retro sound effects (lasers, explosions, smart bombs).
 *   [ ] Fine-tune gameplay variables (speeds, rates of fire, enemy spawn rates per level).
+
+
+## Contributions / Credits / Inspiration: 
+* https://opengameart.org/ Game sprites for development and potentially final usage found here.
+* https://defender.fandom.com/wiki/Defender Game Wiki for Defender
