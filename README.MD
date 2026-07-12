@@ -1,7 +1,8 @@
 # Architecture & Implementation Guide: Vanilla JS Defender
 
-This document outlines the architecture, systems, and implementation steps required to build a fully functional, high-performance, and visually faithful clone of the classic 1981 arcade game **Defender** using vanilla HTML5 Canvas and JavaScript.
+This document is the results of a Gemini Deep Research about the game Defender and outlines the architecture, systems, and implementation steps required to build a fully functional, high-performance, and visually faithful clone of the classic 1981 arcade game **Defender** using vanilla HTML5 Canvas and JavaScript.
 
+* developers note: May skip Canvas and use pure DOM manipulation. This document serves as a Pseudo-Code of sorts. 
 ---
 
 ## 1. Game Mechanics Summary
@@ -190,3 +191,5 @@ Here is a step-by-step path to programming the game:
 ## Contributions / Credits / Inspiration: 
 * https://opengameart.org/ Game sprites for development and potentially final usage found here.
 * https://defender.fandom.com/wiki/Defender Game Wiki for Defender
+* https://www.digitpress.com/library/books/book_vmg_defender.pdf Great resource for any Defender knowlege, scoring or strategies.
+* https://github.com/mwenge/defender The original Arcade game source code!
