@@ -1,17 +1,64 @@
 // constants
-const WORLD_WIDTH = 10000;
+// const WORLD_WIDTH = 10000;
+// const worldWidth = 10000;
 const VIEW_PORT = 800;
 
-// variables
+const scrollSpeed = 56;
 
+const keys = {};
+window.addEventListener('keydown', (e) => (keys[e.key] = true));
+window.addEventListener('keyup', (e) => (keys[e.key] = false));
+
+// variables
+let scrollX = 0;
 // Game States
 let menu, playing, Level_complete, player_death, game_over;
 
 // Player Stats
 let score, lives, smart_bombs, active_level;
 
-// cached DOM elements
+//DOM elements
+const containers = document.getElementsByClassName('container');
+const body = document.querySelector('body');
 
+const radar = document.createElement('canvas');
+document.body.appendChild(radar);
+radar.id = 'radar';
+radar.style.width = '80rem';
+radar.style.height = '12rem';
+radar.style.border = '1px solid grey';
+
+radar.width = radar.clientWidth;
+radar.height = radar.clientHeight;
+const ctx = radar.getContext('2d');
+
+// --- Viewport & GameField Canvas Setup ---
+const viewport = document.createElement('div');
+viewport.className = 'viewport-window';
+document.body.appendChild(viewport);
+
+const canvasStrip = document.createElement('div');
+canvasStrip.id = 'canvas-strip';
+viewport.appendChild(canvasStrip);
+
+const gameField = document.createElement('canvas');
+gameField.className = 'game-panel';
+canvasStrip.appendChild(gameField);
+
+const gameFieldClone = document.createElement('canvas');
+gameFieldClone.className = 'game-panel';
+canvasStrip.appendChild(gameFieldClone);
+
+gameField.width = gameField.clientWidth;
+gameField.height = gameField.clientHeight;
+gameFieldClone.width = gameFieldClone.clientWidth;
+gameFieldClone.height = gameFieldClone.clientHeight;
+
+const ctx2 = gameField.getContext('2d');
+const ctx3 = gameFieldClone.getContext('2d');
+
+
+const worldWidth = gameField.width;
 // functions
 const generate_terrain = (
   parentNodes,
@@ -43,7 +90,7 @@ const generate_terrain = (
   points.push([`${x2}`, `${y2}`]);
   const pointsString = points.join(' ');
 
-  [ctx, ctx2, ctx3].forEach(c => {
+  [ctx, ctx2, ctx3].forEach((c) => {
     c.strokeStyle = 'red';
     c.lineWidth = 2;
     c.lineCap = 'square';
@@ -63,77 +110,21 @@ const generate_terrain = (
     if (index === 0) {
       ctx.moveTo(canvasX, canvasY);
       ctx2.moveTo(canvas2X, canvas2Y);
-      ctx3.moveTo(canvas2X, canvas2Y); 
+      ctx3.moveTo(canvas2X, canvas2Y);
     } else {
       ctx.lineTo(canvasX, canvasY);
       ctx2.lineTo(canvas2X, canvas2Y);
       ctx3.lineTo(canvas2X, canvas2Y);
     }
-    
   });
 
   ctx.stroke();
   ctx2.stroke();
-  ctx3.stroke(); 
+  ctx3.stroke();
 };
 
-
-const containers = document.getElementsByClassName('container');
-const body = document.querySelector('body');
-
-const radar = document.createElement('canvas');
-document.body.appendChild(radar);
-radar.id = 'radar';
-radar.style.width = '80rem';
-radar.style.height = '12rem';
-radar.style.border = '1px solid grey';
-
-radar.width = radar.clientWidth;
-radar.height = radar.clientHeight;
-const ctx = radar.getContext('2d');
-
-// --- Viewport & GameField Canvas Setup ---
-
-const viewport = document.createElement('div');
-viewport.className = 'viewport-window';
-document.body.appendChild(viewport);
-
-const canvasStrip = document.createElement('div');
-canvasStrip.id = 'canvas-strip';
-viewport.appendChild(canvasStrip);
-
-const gameField = document.createElement('canvas');
-gameField.className = 'game-panel';
-canvasStrip.appendChild(gameField);
-
-const gameFieldClone = document.createElement('canvas');
-gameFieldClone.className = 'game-panel';
-canvasStrip.appendChild(gameFieldClone);
-
-gameField.width = gameField.clientWidth;
-gameField.height = gameField.clientHeight;
-gameFieldClone.width = gameFieldClone.clientWidth;
-gameFieldClone.height = gameFieldClone.clientHeight;
-
-const ctx2 = gameField.getContext('2d');
-const ctx3 = gameFieldClone.getContext('2d');
-
-// Run terrain generation
-generate_terrain(containers, 0, 70, 100, 70, 2.5, 35);
-
-
 // --- CAMERA & SCROLLING CONTROLS ---
-let scrollX = 0;
-const scrollSpeed = 56; 
-
-const worldWidth = gameField.width; 
-
-const keys = {};
-window.addEventListener('keydown', (e) => keys[e.key] = true);
-window.addEventListener('keyup', (e) => keys[e.key] = false);
-
 function gameLoop() {
-
   if (keys['ArrowRight'] || keys['d']) {
     scrollX += scrollSpeed;
   }
@@ -143,16 +134,15 @@ function gameLoop() {
 
   if (scrollX >= worldWidth) {
     scrollX -= worldWidth;
-  }
-
-  else if (scrollX < 0) {
+  } else if (scrollX < 0) {
     scrollX += worldWidth;
   }
-
 
   canvasStrip.style.transform = `translateX(${-scrollX}px)`;
 
   requestAnimationFrame(gameLoop);
 }
 
+// Run terrain generation
+generate_terrain(containers, 0, 70, 100, 70, 2.5, 35);
 gameLoop();
