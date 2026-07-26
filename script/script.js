@@ -3,11 +3,11 @@
 // const worldWidth = 10000;
 const VIEW_PORT = 800;
 
-const scrollSpeed = 56;
+const scrollSpeed = 25;
 
 const keys = {};
-window.addEventListener('keydown', (e) => (keys[e.key] = true));
-window.addEventListener('keyup', (e) => (keys[e.key] = false));
+window.addEventListener('keydown', (e) => handleKeyEvent(e));
+window.addEventListener('keyup', (e) => handleKeyEvent(e));
 
 // variables
 let scrollX = 0;
@@ -22,7 +22,7 @@ let facing = 1; // 1 for right -1 for left
 let velocity = 0; // max is 2 frames per second.
 let accelRate = 0.08;
 let decelRate = 0.04;
-let maxVelocity = 2;
+let maxVelocity = 25;
 
 //DOM elements
 const containers = document.getElementsByClassName('container');
@@ -131,11 +131,32 @@ const generate_terrain = (
 
 // --- CAMERA & SCROLLING CONTROLS ---
 function gameLoop() {
-  if (keys['ArrowRight'] || keys['d']) {
-    scrollX += scrollSpeed;
+  if ((keys['ArrowRight'] || keys['d']) && keys['ArrowRight'].isPressed) {
+    if (facing !== 1) {
+      reverse();
+    }
+    speedingUp();
+    // scrollX += scrollSpeed;
+    scrollX += velocity;
+  } else if (
+    (keys['ArrowRight'] || keys['d']) &&
+    !keys['ArrowRight'].isPressed
+  ) {
+    coasting();
+    scrollX += velocity;
   }
-  if (keys['ArrowLeft'] || keys['a']) {
-    scrollX -= scrollSpeed;
+
+  if ((keys['ArrowLeft'] || keys['a']) && keys['ArrowLeft'].isPressed) {
+    if (facing !== -1) {
+      reverse();
+    }
+    speedingUp();
+    // scrollX -= scrollSpeed;
+    scrollX += velocity;
+  } else if ((keys['ArrowLeft'] || keys['a']) && !keys['ArrowLeft'].isPressed) {
+    coasting();
+    // scrollX -= scrollSpeed;
+    scrollX += velocity;
   }
 
   if (scrollX >= worldWidth) {
@@ -149,11 +170,19 @@ function gameLoop() {
   requestAnimationFrame(gameLoop);
 }
 
+function handleKeyEvent(e) {
+  keys[e.key] = {
+    isPressed: e.type === 'keydown',
+    type: e.type,
+  };
+}
+
 function speedingUp() {
   if (facing === 1) {
     velocity = Math.min(maxVelocity, velocity + accelRate);
   } else {
     velocity = Math.max(-maxVelocity, velocity - accelRate);
+    // velocity = Math.max(maxVelocity, velocity + accelRate);
   }
 }
 
