@@ -65,6 +65,15 @@ const ctx2 = gameField.getContext('2d');
 const ctx3 = gameFieldClone.getContext('2d');
 
 const worldWidth = gameField.width;
+
+const shipCanvas = document.createElement('canvas');
+shipCanvas.className = 'shipField';
+viewport.appendChild(shipCanvas);
+shipCanvas.width = shipCanvas.clientWidth;
+shipCanvas.height = shipCanvas.clientHeight;
+
+const shipCtx = shipCanvas.getContext('2d');
+
 // functions
 const generate_terrain = (
   parentNodes,
@@ -129,6 +138,35 @@ const generate_terrain = (
   ctx3.stroke();
 };
 
+const placeShip = () => {
+  console.log('placing ship');
+  const shipSprite = new Image();
+  shipSprite.src = 'assets/Spaceship (1).png';
+
+  // shipSprite.onload = function () {
+
+  //   const x = shipCanvas.width / 2 - shipSprite.width / 2;
+  //   const y = shipCanvas.height / 2 - shipSprite.height / 2;
+
+  //   shipCtx.drawImage(shipSprite, x, y);
+  // };
+
+  shipSprite.onload = function () {
+    console.log(facing);
+
+    const x = (shipCanvas.width - 150) / 2;
+    const y = (shipCanvas.height - 70) / 2;
+
+    if (facing === -1) {
+      shipCtx.drawImage(shipSprite, x, y, 150, 70);
+      shipCtx.translate(x + 150, y);
+      shipCtx.scale(-1, 1);
+    } else {
+      shipCtx.drawImage(shipSprite, x, y, 150, 70);
+    }
+  };
+};
+
 // --- CAMERA & SCROLLING CONTROLS ---
 function gameLoop() {
   if ((keys['ArrowRight'] || keys['d']) && keys['ArrowRight'].isPressed) {
@@ -179,8 +217,10 @@ function handleKeyEvent(e) {
 
 function speedingUp() {
   if (facing === 1) {
+    placeShip();
     velocity = Math.min(maxVelocity, velocity + accelRate);
   } else {
+    placeShip();
     velocity = Math.max(-maxVelocity, velocity - accelRate);
     // velocity = Math.max(maxVelocity, velocity + accelRate);
   }
@@ -201,4 +241,5 @@ function reverse() {
 
 // Run terrain generation
 generate_terrain(containers, 0, 70, 100, 70, 2.5, 35);
+placeShip();
 gameLoop();
