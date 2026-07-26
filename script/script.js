@@ -17,6 +17,13 @@ let menu, playing, Level_complete, player_death, game_over;
 // Player Stats
 let score, lives, smart_bombs, active_level;
 
+// Player Ship stats
+let facing = 1; // 1 for right -1 for left
+let velocity = 0; // max is 2 frames per second.
+let accelRate = 0.08;
+let decelRate = 0.04;
+let maxVelocity = 2;
+
 //DOM elements
 const containers = document.getElementsByClassName('container');
 const body = document.querySelector('body');
@@ -56,7 +63,6 @@ gameFieldClone.height = gameFieldClone.clientHeight;
 
 const ctx2 = gameField.getContext('2d');
 const ctx3 = gameFieldClone.getContext('2d');
-
 
 const worldWidth = gameField.width;
 // functions
@@ -141,6 +147,27 @@ function gameLoop() {
   canvasStrip.style.transform = `translateX(${-scrollX}px)`;
 
   requestAnimationFrame(gameLoop);
+}
+
+function speedingUp() {
+  if (facing === 1) {
+    velocity = Math.min(maxVelocity, velocity + accelRate);
+  } else {
+    velocity = Math.max(-maxVelocity, velocity - accelRate);
+  }
+}
+
+function coasting() {
+  if (velocity > 0) {
+    velocity = Math.max(0.0, velocity - decelRate);
+  } else {
+    velocity = Math.min(0.0, velocity + decelRate);
+  }
+}
+
+function reverse() {
+  facing = -facing;
+  velocity = -velocity;
 }
 
 // Run terrain generation

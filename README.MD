@@ -155,11 +155,11 @@ To capture the original arcade vibe:
 Here is a step-by-step path to programming the game:
 
 ### Phase 1: Engine Skeleton & Viewport
-*   [ ] Set up HTML/CSS with a full-window responsive canvas.
-*   [ ] Implement the game loop (`requestAnimationFrame`).
-*   [ ] Create the `Input` handler tracking key states.
-*   [ ] Build the static jagged terrain generator and coordinate wrapping logic.
-*   [ ] Add the `Camera` system moving with keys.
+*   [✓] Set up HTML/CSS with a full-window responsive canvas.
+*   [✓] Implement the game loop (`requestAnimationFrame`).
+*   [✓] Create the `Input` handler tracking key states.
+*   [✓] Build the static jagged terrain generator and coordinate wrapping logic.
+*   [✓] Add the `Camera` system moving with keys.
 
 ### Phase 2: Player & Basic Physics
 *   [ ] Implement player ship with thrust, inertia, and vertical bounds.
