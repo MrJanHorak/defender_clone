@@ -19,10 +19,13 @@ let score, lives, smart_bombs, active_level;
 
 // Player Ship stats
 let facing = 1; // 1 for right -1 for left
-let velocity = 0; // max is 2 frames per second.
+let velocity = 0;
 let accelRate = 0.08;
 let decelRate = 0.04;
 let maxVelocity = 25;
+let shipYposition = 520;
+let shipMaxYposition=1486
+let shipMinYposition=-12;
 
 //DOM elements
 const containers = document.getElementsByClassName('container');
@@ -138,31 +141,66 @@ const generate_terrain = (
   ctx3.stroke();
 };
 
-const placeShip = () => {
-  console.log('placing ship');
+const handleKeyEvent = (e) => {
+  keys[e.key] = {
+    isPressed: e.type === 'keydown',
+    type: e.type,
+  };
+};
+
+const speedingUp = () => {
+  if (facing === 1) {
+    velocity = Math.min(maxVelocity, velocity + accelRate);
+  } else {
+    velocity = Math.max(-maxVelocity, velocity - accelRate);
+  }
+};
+
+const coasting = () => {
+  if (velocity > 0) {
+    velocity = Math.max(0.0, velocity - decelRate);
+  } else {
+    velocity = Math.min(0.0, velocity + decelRate);
+  }
+};
+
+const reverse = () => {
+  facing = -facing;
+  velocity = -velocity;
+};
+
+// const placeShip = () => {
+//   const shipSprite = new Image();
+//   shipSprite.src = 'assets/Spaceship (1).png';
+
+//   shipSprite.onload = function () {
+//     const x = (shipCanvas.width - 150) / 2;
+//     const y = (shipCanvas.height - 70) / 2;
+
+//     shipCtx.drawImage(shipSprite, x, y, 150, 70);
+//   };
+// };
+
+const moveShip = () => {
   const shipSprite = new Image();
   shipSprite.src = 'assets/Spaceship (1).png';
 
-  // shipSprite.onload = function () {
-
-  //   const x = shipCanvas.width / 2 - shipSprite.width / 2;
-  //   const y = shipCanvas.height / 2 - shipSprite.height / 2;
-
-  //   shipCtx.drawImage(shipSprite, x, y);
-  // };
-
   shipSprite.onload = function () {
-    console.log(facing);
-
     const x = (shipCanvas.width - 150) / 2;
-    const y = (shipCanvas.height - 70) / 2;
+    const y = shipYposition;
 
     if (facing === -1) {
-      shipCtx.drawImage(shipSprite, x, y, 150, 70);
+      shipCtx.save();
+      shipCtx.clearRect(0, 0, shipCanvas.width, shipCanvas.height);
       shipCtx.translate(x + 150, y);
       shipCtx.scale(-1, 1);
+      shipCtx.drawImage(shipSprite, 0, 0, 150, 70);
+      shipCtx.restore();
     } else {
+      shipCtx.save();
+      shipCtx.clearRect(0, 0, shipCanvas.width, shipCanvas.height);
       shipCtx.drawImage(shipSprite, x, y, 150, 70);
+      shipCtx.restore();
     }
   };
 };
@@ -197,6 +235,14 @@ function gameLoop() {
     scrollX += velocity;
   }
 
+  if ((keys['ArrowUp'] || keys['w']) && keys['ArrowUp'].isPressed) {
+    shipYposition = Math.max(-12, shipYposition - 14);
+  }
+
+  if ((keys['ArrowDown'] || keys['s']) && keys['ArrowDown'].isPressed) {
+    shipYposition = Math.min(1486, shipYposition + 14);
+  }
+
   if (scrollX >= worldWidth) {
     scrollX -= worldWidth;
   } else if (scrollX < 0) {
@@ -204,42 +250,11 @@ function gameLoop() {
   }
 
   canvasStrip.style.transform = `translateX(${-scrollX}px)`;
-
+  moveShip();
   requestAnimationFrame(gameLoop);
-}
-
-function handleKeyEvent(e) {
-  keys[e.key] = {
-    isPressed: e.type === 'keydown',
-    type: e.type,
-  };
-}
-
-function speedingUp() {
-  if (facing === 1) {
-    placeShip();
-    velocity = Math.min(maxVelocity, velocity + accelRate);
-  } else {
-    placeShip();
-    velocity = Math.max(-maxVelocity, velocity - accelRate);
-    // velocity = Math.max(maxVelocity, velocity + accelRate);
-  }
-}
-
-function coasting() {
-  if (velocity > 0) {
-    velocity = Math.max(0.0, velocity - decelRate);
-  } else {
-    velocity = Math.min(0.0, velocity + decelRate);
-  }
-}
-
-function reverse() {
-  facing = -facing;
-  velocity = -velocity;
 }
 
 // Run terrain generation
 generate_terrain(containers, 0, 70, 100, 70, 2.5, 35);
-placeShip();
+// placeShip();
 gameLoop();
