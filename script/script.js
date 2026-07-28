@@ -24,23 +24,40 @@ let accelRate = 0.08;
 let decelRate = 0.04;
 let maxVelocity = 25;
 let shipYposition = 520;
-let shipMaxYposition=1486
-let shipMinYposition=-12;
+let shipMaxYposition = 1374;
+let shipMinYposition = -12;
+let radarShipYposition = 60;
+let radarShipMaxYposition = 0;
+let radarShipMinYposition = 108;
+let radarShipXposition = 350;
+let radarShipMaxXposition = 700;
+let radarShipMinXposition = 0;
 
 //DOM elements
 const containers = document.getElementsByClassName('container');
 const body = document.querySelector('body');
 
-const radar = document.createElement('canvas');
-document.body.appendChild(radar);
-radar.id = 'radar';
-radar.style.width = '80rem';
-radar.style.height = '12rem';
-radar.style.border = '1px solid grey';
+const radarContainer = document.createElement('div');
+radarContainer.id = 'radarContainer';
+document.body.appendChild(radarContainer);
 
-radar.width = radar.clientWidth;
-radar.height = radar.clientHeight;
+const radar = document.createElement('canvas');
+radar.id = 'radar';
+radarContainer.appendChild(radar);
+
+const radarShipCanvas = document.createElement('canvas');
+radarShipCanvas.className = 'radarShipField';
+radarContainer.appendChild(radarShipCanvas);
+
+// Sync internal canvas resolutions to DOM rendering sizes
+radar.width = radarContainer.clientWidth;
+radar.height = radarContainer.clientHeight;
+
+radarShipCanvas.width = radarContainer.clientWidth;
+radarShipCanvas.height = radarContainer.clientHeight;
+
 const ctx = radar.getContext('2d');
+const radarShipCTX = radarShipCanvas.getContext('2d');
 
 // --- Viewport & GameField Canvas Setup ---
 const viewport = document.createElement('div');
@@ -108,22 +125,34 @@ const generate_terrain = (
   points.push([`${x2}`, `${y2}`]);
   const pointsString = points.join(' ');
 
-  [ctx, ctx2, ctx3].forEach((c) => {
+  [ctx2, ctx3].forEach((c) => {
     c.strokeStyle = 'red';
-    c.lineWidth = 2;
+    c.lineWidth = 3;
     c.lineCap = 'square';
     c.lineJoin = 'round';
     c.beginPath();
   });
 
+  ctx.strokeStyle = 'red';
+  ctx.lineWidth = 1;
+  ctx.lineCap = 'square';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+
+  // Calculate aspect ratios for proportional scaling
+  const radarYScale = radar.height / gameField.height;
+
   points.forEach((point, index) => {
     const rawX = parseFloat(point[0]);
     const rawY = parseFloat(point[1]);
 
-    const canvasX = (rawX / 100) * radar.width;
-    const canvasY = (rawY / 100) * radar.height;
+    // Main game field positions (unscaled world coords)
     const canvas2X = (rawX / 100) * gameField.width;
     const canvas2Y = (rawY / 100) * gameField.height;
+
+    // Radar positions (X scales to radar width, Y scales proportionally to gameField height)
+    const canvasX = (rawX / 100) * radar.width;
+    const canvasY = canvas2Y * radarYScale;
 
     if (index === 0) {
       ctx.moveTo(canvasX, canvasY);
@@ -181,6 +210,16 @@ const reverse = () => {
 //   };
 // };
 
+const drawRadarViewportBox = () => {
+  const visibleWidthRatio = viewport.clientWidth / worldWidth;
+  const boxWidth = radar.width * visibleWidthRatio;
+  const boxX = (scrollX / worldWidth) * radar.width;
+
+  radarShipCTX.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+  radarShipCTX.lineWidth = 1;
+  radarShipCTX.strokeRect(boxX, 0, boxWidth, radar.height);
+};
+
 const moveShip = () => {
   const shipSprite = new Image();
   shipSprite.src = 'assets/Spaceship (1).png';
@@ -203,6 +242,31 @@ const moveShip = () => {
       shipCtx.restore();
     }
   };
+};
+
+const moveShipRadar = () => {
+  const playerSprite = new Image();
+  playerSprite.src = 'assets/Spaceship (1).png';
+
+  playerSprite.onload = function () {
+    const x = (scrollX / worldWidth) * radar.width +25;
+    const y = radarShipYposition;
+
+    radarShipCTX.clearRect(0, 0, radarShipCanvas.width, radarShipCanvas.height);
+
+    if (facing === -1) {
+      radarShipCTX.save();
+      radarShipCTX.translate(x + 30, y);
+      radarShipCTX.scale(-1, 1);
+      radarShipCTX.drawImage(playerSprite, 0, 0, 30, 15);
+      radarShipCTX.restore();
+    } else {
+      radarShipCTX.save();
+      radarShipCTX.drawImage(playerSprite, x, y, 30, 15);
+      radarShipCTX.restore();
+    }
+  };
+  drawRadarViewportBox();
 };
 
 // --- CAMERA & SCROLLING CONTROLS ---
@@ -237,10 +301,18 @@ function gameLoop() {
 
   if ((keys['ArrowUp'] || keys['w']) && keys['ArrowUp'].isPressed) {
     shipYposition = Math.max(-12, shipYposition - 14);
+    radarShipYposition = Math.max(
+      radarShipMaxYposition,
+      radarShipYposition - 1,
+    );
   }
 
   if ((keys['ArrowDown'] || keys['s']) && keys['ArrowDown'].isPressed) {
-    shipYposition = Math.min(1486, shipYposition + 14);
+    shipYposition = Math.min(1374, shipYposition + 14);
+    radarShipYposition = Math.min(
+      radarShipMinYposition,
+      radarShipYposition + 1,
+    );
   }
 
   if (scrollX >= worldWidth) {
@@ -251,6 +323,7 @@ function gameLoop() {
 
   canvasStrip.style.transform = `translateX(${-scrollX}px)`;
   moveShip();
+  moveShipRadar();
   requestAnimationFrame(gameLoop);
 }
 
