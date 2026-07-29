@@ -28,7 +28,7 @@ let shipMaxYposition = 1374;
 let shipMinYposition = -12;
 let radarShipYposition = 60;
 let radarShipMaxYposition = 0;
-let radarShipMinYposition = 108;
+let radarShipMinYposition = 140;
 let radarShipXposition = 350;
 let radarShipMaxXposition = 700;
 let radarShipMinXposition = 0;
@@ -249,7 +249,7 @@ const moveShipRadar = () => {
   playerSprite.src = 'assets/Spaceship (1).png';
 
   playerSprite.onload = function () {
-    const x = (scrollX / worldWidth) * radar.width +25;
+    const x = (scrollX / worldWidth) * radar.width +45;
     const y = radarShipYposition;
 
     radarShipCTX.clearRect(0, 0, radarShipCanvas.width, radarShipCanvas.height);
@@ -303,7 +303,7 @@ function gameLoop() {
     shipYposition = Math.max(-12, shipYposition - 14);
     radarShipYposition = Math.max(
       radarShipMaxYposition,
-      radarShipYposition - 1,
+      radarShipYposition - 1.4,
     );
   }
 
@@ -311,7 +311,7 @@ function gameLoop() {
     shipYposition = Math.min(1374, shipYposition + 14);
     radarShipYposition = Math.min(
       radarShipMinYposition,
-      radarShipYposition + 1,
+      radarShipYposition + 1.4,
     );
   }
 
