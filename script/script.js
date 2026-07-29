@@ -4,10 +4,26 @@
 const VIEW_PORT = 800;
 
 const scrollSpeed = 25;
-
+const mouse = { leftPressed: false, rightPressed: false };
 const keys = {};
+
 window.addEventListener('keydown', (e) => handleKeyEvent(e));
 window.addEventListener('keyup', (e) => handleKeyEvent(e));
+
+window.addEventListener('mousedown', (e) => {
+  console.log(e.button);
+  if (e.button === 0) mouse.leftPressed = true;
+  if (e.button === 1) mouse.middlePressed = true;
+  if (e.button === 2) mouse.rightPressed = true;
+});
+
+window.addEventListener('mouseup', (e) => {
+  if (e.button === 0) mouse.leftPressed = false;
+  if (e.button === 1) mouse.middlePressed = false;
+  if (e.button === 2) mouse.rightPressed = false;
+});
+
+window.addEventListener('contextmenu', e => e.preventDefault());
 
 // variables
 let scrollX = 0;
@@ -249,7 +265,7 @@ const moveShipRadar = () => {
   playerSprite.src = 'assets/Spaceship (1).png';
 
   playerSprite.onload = function () {
-    const x = (scrollX / worldWidth) * radar.width +45;
+    const x = (scrollX / worldWidth) * radar.width + 45;
     const y = radarShipYposition;
 
     radarShipCTX.clearRect(0, 0, radarShipCanvas.width, radarShipCanvas.height);
@@ -268,6 +284,18 @@ const moveShipRadar = () => {
   };
   drawRadarViewportBox();
 };
+
+const fireLaser = () => {
+  console.log('laser fired');
+}
+
+const deployBomb = () => {
+  console.log('BOOOOM bomb used');
+}
+
+const activateWarp = () =>{
+  console.log('Engage!');
+}
 
 // --- CAMERA & SCROLLING CONTROLS ---
 function gameLoop() {
@@ -313,6 +341,18 @@ function gameLoop() {
       radarShipMinYposition,
       radarShipYposition + 1.4,
     );
+  }
+
+  if (keys['Space'] || mouse.leftPressed) {
+    fireLaser()
+  }
+
+  if (keys['Ctrl'] || mouse.rightPressed) {
+    deployBomb();
+  }
+
+  if (keys['z'] || mouse.middlePressed) {
+    activateWarp();
   }
 
   if (scrollX >= worldWidth) {
