@@ -10,9 +10,9 @@ const keys = {};
 window.addEventListener('keydown', (e) => handleKeyEvent(e));
 window.addEventListener('keyup', (e) => handleKeyEvent(e));
 
-window.addEventListener('mousedown', (e) => {
+window.addEventListener('click', (e) => {
   console.log(e.button);
-  if (e.button === 0) mouse.leftPressed = true;
+  if (e.button === 0) fireLaser();
   if (e.button === 1) mouse.middlePressed = true;
   if (e.button === 2) mouse.rightPressed = true;
 });
@@ -47,6 +47,8 @@ let radarShipMaxYposition = 127;
 let radarShipMaxXposition = 700;
 let radarShipMinXposition = 0;
 let radarShipYposition = (radarShipMaxYposition - radarShipMinYposition) / 2;
+
+const lasers = [];
 
 //DOM elements
 const containers = document.getElementsByClassName('container');
@@ -285,8 +287,18 @@ const moveShipRadar = () => {
 };
 
 const fireLaser = () => {
+  lasers.push({
+    startX: shipCanvas.width / 2 + 58,
+    startY: shipYposition + 37,
+    length: 1000,
+    timer: 1000,
+    speed: 50,
+  });
+};
+
+const drawDefenderLaser = (startX, startY, laserLength) => {
   console.log('phew phew ... firing lasr --------- ZAP!');
-  const laserLength = 800;
+  // const laserLength = 800;
   const segmentLength = 20;
   const colors = [
     '#FF0000',
@@ -295,35 +307,55 @@ const fireLaser = () => {
     '#FFFF00',
     '#FF00FF',
     '#FFFFFF',
+    '#000000',
   ];
-  let startX = shipCanvas.width / 2 + 58;
+
+  // let startX = shipCanvas.width / 2 + 58;
+  let endX;
+
   shipCtx.lineWidth = 4;
   facing === 1
     ? (startX = shipCanvas.width / 2 + 58)
     : (startX = shipCanvas.width / 2 - 58);
 
-  if (facing === 1) {
+  for (let i = lasers.length - 1; i >= 0; i--) {
+    let laser = lasers[i];
     for (let x = 0; x < laserLength; x += segmentLength) {
       shipCtx.strokeStyle = colors[Math.floor(Math.random() * colors.length)];
 
       shipCtx.beginPath();
-      shipCtx.moveTo(startX + x, shipYposition + 37);
+      if (facing === 1) {
+        shipCtx.moveTo(startX + x, startY);
+        endX = Math.min(startX + x + segmentLength, startX + laserLength);
+      } else {
+        shipCtx.moveTo(startX - x, startY);
+        endX = Math.min(startX - x - segmentLength, startX - laserLength);
+      }
+      laser.timer--;
 
-      const endX = Math.min(startX + x + segmentLength, startX + laserLength);
-      shipCtx.lineTo(endX, shipYposition + 37);
+      if (laser.timer <= 0) {
+        lasers.splice(i, 1);
+        continue;
+      }
+      shipCtx.lineTo(endX, startY);
       shipCtx.stroke();
     }
-  } else {
-    for (let x = 0; x < laserLength; x += segmentLength) {
-      shipCtx.strokeStyle = colors[Math.floor(Math.random() * colors.length)];
+  }
+};
 
-      shipCtx.beginPath();
-      shipCtx.moveTo(startX - x, shipYposition + 37);
+const updateAndDrawLasers = () => {
+  for (let i = lasers.length - 1; i >= 0; i--) {
+    let laser = lasers[i];
 
-      const endX = Math.min(startX - x - segmentLength, startX - laserLength);
-      shipCtx.lineTo(endX, shipYposition + 37);
-      shipCtx.stroke();
+    // laser.startX += laser.speed;
+
+    laser.timer--;
+
+    if (laser.timer <= 0) {
+      lasers.splice(i, 1);
+      continue;
     }
+    drawDefenderLaser(laser.startX, laser.startY, laser.length);
   }
 };
 
@@ -402,6 +434,7 @@ function gameLoop() {
   canvasStrip.style.transform = `translateX(${-scrollX}px)`;
   moveShip();
   moveShipRadar();
+  updateAndDrawLasers();
   requestAnimationFrame(gameLoop);
 }
 
