@@ -23,7 +23,7 @@ window.addEventListener('mouseup', (e) => {
   if (e.button === 2) mouse.rightPressed = false;
 });
 
-window.addEventListener('contextmenu', e => e.preventDefault());
+window.addEventListener('contextmenu', (e) => e.preventDefault());
 
 // variables
 let scrollX = 0;
@@ -39,15 +39,14 @@ let velocity = 0;
 let accelRate = 0.08;
 let decelRate = 0.04;
 let maxVelocity = 25;
-let shipYposition = 520;
-let shipMaxYposition = 1374;
+let shipMaxYposition = 1375;
 let shipMinYposition = -12;
-let radarShipYposition = 60;
-let radarShipMaxYposition = 0;
-let radarShipMinYposition = 140;
-let radarShipXposition = 350;
+let shipYposition = (shipMaxYposition - shipMinYposition) / 2;
+let radarShipMinYposition = 0;
+let radarShipMaxYposition = 127;
 let radarShipMaxXposition = 700;
 let radarShipMinXposition = 0;
+let radarShipYposition = (radarShipMaxYposition - radarShipMinYposition) / 2;
 
 //DOM elements
 const containers = document.getElementsByClassName('container');
@@ -286,16 +285,55 @@ const moveShipRadar = () => {
 };
 
 const fireLaser = () => {
-  console.log('laser fired');
-}
+  console.log('phew phew ... firing lasr --------- ZAP!');
+  const laserLength = 800;
+  const segmentLength = 20;
+  const colors = [
+    '#FF0000',
+    '#00FF00',
+    '#00FFFF',
+    '#FFFF00',
+    '#FF00FF',
+    '#FFFFFF',
+  ];
+  let startX = shipCanvas.width / 2 + 58;
+  shipCtx.lineWidth = 4;
+  facing === 1
+    ? (startX = shipCanvas.width / 2 + 58)
+    : (startX = shipCanvas.width / 2 - 58);
+
+  if (facing === 1) {
+    for (let x = 0; x < laserLength; x += segmentLength) {
+      shipCtx.strokeStyle = colors[Math.floor(Math.random() * colors.length)];
+
+      shipCtx.beginPath();
+      shipCtx.moveTo(startX + x, shipYposition + 37);
+
+      const endX = Math.min(startX + x + segmentLength, startX + laserLength);
+      shipCtx.lineTo(endX, shipYposition + 37);
+      shipCtx.stroke();
+    }
+  } else {
+    for (let x = 0; x < laserLength; x += segmentLength) {
+      shipCtx.strokeStyle = colors[Math.floor(Math.random() * colors.length)];
+
+      shipCtx.beginPath();
+      shipCtx.moveTo(startX - x, shipYposition + 37);
+
+      const endX = Math.min(startX - x - segmentLength, startX - laserLength);
+      shipCtx.lineTo(endX, shipYposition + 37);
+      shipCtx.stroke();
+    }
+  }
+};
 
 const deployBomb = () => {
   console.log('BOOOOM bomb used');
-}
+};
 
-const activateWarp = () =>{
+const activateWarp = () => {
   console.log('Engage!');
-}
+};
 
 // --- CAMERA & SCROLLING CONTROLS ---
 function gameLoop() {
@@ -330,21 +368,21 @@ function gameLoop() {
   if ((keys['ArrowUp'] || keys['w']) && keys['ArrowUp'].isPressed) {
     shipYposition = Math.max(-12, shipYposition - 14);
     radarShipYposition = Math.max(
-      radarShipMaxYposition,
+      radarShipMinYposition,
       radarShipYposition - 1.4,
     );
   }
 
   if ((keys['ArrowDown'] || keys['s']) && keys['ArrowDown'].isPressed) {
-    shipYposition = Math.min(1374, shipYposition + 14);
+    shipYposition = Math.min(shipMaxYposition, shipYposition + 14);
     radarShipYposition = Math.min(
-      radarShipMinYposition,
+      radarShipMaxYposition,
       radarShipYposition + 1.4,
     );
   }
 
   if (keys['Space'] || mouse.leftPressed) {
-    fireLaser()
+    fireLaser();
   }
 
   if (keys['Ctrl'] || mouse.rightPressed) {
