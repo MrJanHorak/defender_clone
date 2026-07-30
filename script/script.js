@@ -234,7 +234,9 @@ const drawRadarViewportBox = () => {
 
   radarShipCTX.strokeStyle = 'rgba(255, 255, 255, 0.6)';
   radarShipCTX.lineWidth = 1;
-  radarShipCTX.strokeRect(boxX, 0, boxWidth, radar.height);
+  facing === 1 ?
+  radarShipCTX.strokeRect(boxX, 0, boxWidth, radar.height):
+  radarShipCTX.strokeRect(boxX, 0, boxWidth, radar.height)
 };
 
 const moveShip = () => {
@@ -248,14 +250,14 @@ const moveShip = () => {
     if (facing === -1) {
       shipCtx.save();
       shipCtx.clearRect(0, 0, shipCanvas.width, shipCanvas.height);
-      shipCtx.translate(x + 150, y);
+      shipCtx.translate(x + 650, y);
       shipCtx.scale(-1, 1);
       shipCtx.drawImage(shipSprite, 0, 0, 150, 70);
       shipCtx.restore();
     } else {
       shipCtx.save();
       shipCtx.clearRect(0, 0, shipCanvas.width, shipCanvas.height);
-      shipCtx.drawImage(shipSprite, x, y, 150, 70);
+      shipCtx.drawImage(shipSprite, x-650, y, 150, 70);
       shipCtx.restore();
     }
   };
@@ -273,7 +275,7 @@ const moveShipRadar = () => {
 
     if (facing === -1) {
       radarShipCTX.save();
-      radarShipCTX.translate(x + 30, y);
+      radarShipCTX.translate(x + 30 +50, y);
       radarShipCTX.scale(-1, 1);
       radarShipCTX.drawImage(playerSprite, 0, 0, 30, 15);
       radarShipCTX.restore();
@@ -315,8 +317,8 @@ const drawDefenderLaser = (startX, startY, laserLength) => {
 
   shipCtx.lineWidth = 4;
   facing === 1
-    ? (startX = shipCanvas.width / 2 + 58)
-    : (startX = shipCanvas.width / 2 - 58);
+    ? (startX = ((shipCanvas.width / 2 + 58)-650))
+    : (startX = ((shipCanvas.width / 2 - 58)+500));
 
   for (let i = lasers.length - 1; i >= 0; i--) {
     let laser = lasers[i];
