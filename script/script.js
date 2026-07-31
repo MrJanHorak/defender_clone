@@ -2,7 +2,8 @@
 // const WORLD_WIDTH = 10000;
 // const worldWidth = 10000;
 const VIEW_PORT = 800;
-
+const LOOK_AHEAD_DISTANCE = 650;
+// const lerpSpeed = 0.05;
 const scrollSpeed = 25;
 const mouse = { leftPressed: false, rightPressed: false };
 const keys = {};
@@ -110,7 +111,13 @@ shipCanvas.width = shipCanvas.clientWidth;
 shipCanvas.height = shipCanvas.clientHeight;
 
 const shipCtx = shipCanvas.getContext('2d');
-
+const shipX = (shipCanvas.width - 150) / 2;
+const camera = {
+  worldX: 0,
+  targetOffsetX: LOOK_AHEAD_DISTANCE,
+  offsetX: LOOK_AHEAD_DISTANCE,
+  lerpSpeed: 0.05,
+};
 // functions
 const generate_terrain = (
   parentNodes,
@@ -163,11 +170,9 @@ const generate_terrain = (
     const rawX = parseFloat(point[0]);
     const rawY = parseFloat(point[1]);
 
-    // Main game field positions (unscaled world coords)
     const canvas2X = (rawX / 100) * gameField.width;
     const canvas2Y = (rawY / 100) * gameField.height;
 
-    // Radar positions (X scales to radar width, Y scales proportionally to gameField height)
     const canvasX = (rawX / 100) * radar.width;
     const canvasY = canvas2Y * radarYScale;
 
@@ -215,17 +220,21 @@ const reverse = () => {
   velocity = -velocity;
 };
 
-// const placeShip = () => {
-//   const shipSprite = new Image();
-//   shipSprite.src = 'assets/Spaceship (1).png';
+const updateGamePhysics = () => {
+  camera.targetWorldX += velocity;
 
-//   shipSprite.onload = function () {
-//     const x = (shipCanvas.width - 150) / 2;
-//     const y = (shipCanvas.height - 70) / 2;
+  if (camera.targetWorldX < 0) camera.targetWorldX += worldWidth;
+  if (camera.targetWorldX >= worldWidth) camera.targetWorldX -= worldWidth;
 
-//     shipCtx.drawImage(shipSprite, x, y, 150, 70);
-//   };
-// };
+  updateCamera();
+};
+
+const updateCamera = () => {
+  camera.targetOffsetX = facing * LOOK_AHEAD_DISTANCE;
+  camera.offsetX += (camera.targetOffsetX - camera.offsetX) * camera.lerpSpeed;
+  let rawScrollX = camera.worldX - viewport.clientWidth / 2 + camera.offsetX;
+  scrollX = ((rawScrollX % worldWidth) + worldWidth) % worldWidth;
+};
 
 const drawRadarViewportBox = () => {
   const visibleWidthRatio = viewport.clientWidth / worldWidth;
@@ -234,9 +243,7 @@ const drawRadarViewportBox = () => {
 
   radarShipCTX.strokeStyle = 'rgba(255, 255, 255, 0.6)';
   radarShipCTX.lineWidth = 1;
-  facing === 1 ?
-  radarShipCTX.strokeRect(boxX, 0, boxWidth, radar.height):
-  radarShipCTX.strokeRect(boxX, 0, boxWidth, radar.height)
+  radarShipCTX.strokeRect(boxX, 0, boxWidth, radar.height);
 };
 
 const moveShip = () => {
@@ -244,44 +251,48 @@ const moveShip = () => {
   shipSprite.src = 'assets/Spaceship (1).png';
 
   shipSprite.onload = function () {
-    const x = (shipCanvas.width - 150) / 2;
     const y = shipYposition;
 
+    const screenCenterX = shipCanvas.width / 2;
+    const renderX = screenCenterX - 75 - camera.offsetX;
+
+    shipCtx.clearRect(0, 0, shipCanvas.width, shipCanvas.height);
+    shipCtx.save();
+
     if (facing === -1) {
-      shipCtx.save();
-      shipCtx.clearRect(0, 0, shipCanvas.width, shipCanvas.height);
-      shipCtx.translate(x + 650, y);
+      shipCtx.translate(renderX + 75, y + 35);
       shipCtx.scale(-1, 1);
-      shipCtx.drawImage(shipSprite, 0, 0, 150, 70);
-      shipCtx.restore();
+      shipCtx.drawImage(shipSprite, -75, -35, 150, 70);
     } else {
-      shipCtx.save();
-      shipCtx.clearRect(0, 0, shipCanvas.width, shipCanvas.height);
-      shipCtx.drawImage(shipSprite, x-650, y, 150, 70);
-      shipCtx.restore();
+      shipCtx.drawImage(shipSprite, renderX, y, 150, 70);
     }
+
+    shipCtx.restore();
   };
 };
 
 const moveShipRadar = () => {
+  // const lerpspeed = 0.05;
   const playerSprite = new Image();
   playerSprite.src = 'assets/Spaceship (1).png';
 
+  // let targetCameraX = (scrollX / worldWidth) * radar.width + 45;
+
   playerSprite.onload = function () {
-    const x = (scrollX / worldWidth) * radar.width + 45;
+    const radarShipx = (scrollX / worldWidth) * radar.width + 45;
     const y = radarShipYposition;
 
     radarShipCTX.clearRect(0, 0, radarShipCanvas.width, radarShipCanvas.height);
 
     if (facing === -1) {
       radarShipCTX.save();
-      radarShipCTX.translate(x + 30 +50, y);
+      radarShipCTX.translate(radarShipx + 30 + 50, y);
       radarShipCTX.scale(-1, 1);
       radarShipCTX.drawImage(playerSprite, 0, 0, 30, 15);
       radarShipCTX.restore();
     } else {
       radarShipCTX.save();
-      radarShipCTX.drawImage(playerSprite, x, y, 30, 15);
+      radarShipCTX.drawImage(playerSprite, radarShipx, y, 30, 15);
       radarShipCTX.restore();
     }
   };
@@ -317,8 +328,8 @@ const drawDefenderLaser = (startX, startY, laserLength) => {
 
   shipCtx.lineWidth = 4;
   facing === 1
-    ? (startX = ((shipCanvas.width / 2 + 58)-650))
-    : (startX = ((shipCanvas.width / 2 - 58)+500));
+    ? (startX = shipCanvas.width / 2 + 58 - 650)
+    : (startX = shipCanvas.width / 2 - 58 + 500);
 
   for (let i = lasers.length - 1; i >= 0; i--) {
     let laser = lasers[i];
@@ -369,45 +380,25 @@ const activateWarp = () => {
   console.log('Engage!');
 };
 
-// --- CAMERA & SCROLLING CONTROLS ---
 function gameLoop() {
-  if ((keys['ArrowRight'] || keys['d']) && keys['ArrowRight'].isPressed) {
-    if (facing !== 1) {
-      reverse();
-    }
+  if ((keys['ArrowRight'] || keys['d'])?.isPressed) {
+    if (facing !== 1) reverse();
     speedingUp();
-    // scrollX += scrollSpeed;
-    scrollX += velocity;
-  } else if (
-    (keys['ArrowRight'] || keys['d']) &&
-    !keys['ArrowRight'].isPressed
-  ) {
+  } else if ((keys['ArrowLeft'] || keys['a'])?.isPressed) {
+    if (facing !== -1) reverse();
+    speedingUp();
+  } else {
     coasting();
-    scrollX += velocity;
   }
 
-  if ((keys['ArrowLeft'] || keys['a']) && keys['ArrowLeft'].isPressed) {
-    if (facing !== -1) {
-      reverse();
-    }
-    speedingUp();
-    // scrollX -= scrollSpeed;
-    scrollX += velocity;
-  } else if ((keys['ArrowLeft'] || keys['a']) && !keys['ArrowLeft'].isPressed) {
-    coasting();
-    // scrollX -= scrollSpeed;
-    scrollX += velocity;
-  }
-
-  if ((keys['ArrowUp'] || keys['w']) && keys['ArrowUp'].isPressed) {
+  if ((keys['ArrowUp'] || keys['w'])?.isPressed) {
     shipYposition = Math.max(-12, shipYposition - 14);
     radarShipYposition = Math.max(
       radarShipMinYposition,
       radarShipYposition - 1.4,
     );
   }
-
-  if ((keys['ArrowDown'] || keys['s']) && keys['ArrowDown'].isPressed) {
+  if ((keys['ArrowDown'] || keys['s'])?.isPressed) {
     shipYposition = Math.min(shipMaxYposition, shipYposition + 14);
     radarShipYposition = Math.min(
       radarShipMaxYposition,
@@ -415,32 +406,23 @@ function gameLoop() {
     );
   }
 
-  if (keys['Space'] || mouse.leftPressed) {
-    fireLaser();
-  }
+  if (keys['Space'] || mouse.leftPressed) fireLaser();
+  if (keys['Ctrl'] || mouse.rightPressed) deployBomb();
+  if (keys['z'] || mouse.middlePressed) activateWarp();
 
-  if (keys['Ctrl'] || mouse.rightPressed) {
-    deployBomb();
-  }
+  camera.worldX += velocity;
+  camera.worldX = ((camera.worldX % worldWidth) + worldWidth) % worldWidth;
 
-  if (keys['z'] || mouse.middlePressed) {
-    activateWarp();
-  }
-
-  if (scrollX >= worldWidth) {
-    scrollX -= worldWidth;
-  } else if (scrollX < 0) {
-    scrollX += worldWidth;
-  }
+  updateCamera();
 
   canvasStrip.style.transform = `translateX(${-scrollX}px)`;
   moveShip();
   moveShipRadar();
   updateAndDrawLasers();
+
   requestAnimationFrame(gameLoop);
 }
 
-// Run terrain generation
 generate_terrain(containers, 0, 70, 100, 70, 2.5, 35);
-// placeShip();
+
 gameLoop();
