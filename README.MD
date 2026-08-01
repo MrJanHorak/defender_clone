@@ -164,8 +164,8 @@ Here is a step-by-step path to programming the game:
 ### Phase 2: Player & Basic Physics
 *   [✓] Implement player ship with thrust, inertia, and vertical bounds.
 *   [✓] Create standard laser projectiles matching player direction.
-*   [ ] Implement wrapping drawing logic (drawing entities twice if they cross world boundaries).
-*   [ ] Render the top-screen Radar mapping all entities onto a scaled-down canvas area.
+*   [✓] Implement wrapping drawing logic (drawing entities twice if they cross world boundaries).
+*   [✓] Render the top-screen Radar mapping all entities onto a scaled-down canvas area.
 
 ### Phase 3: Humanoids & Landers
 *   [ ] Spawn static humanoids walking along the peaks and valleys of the terrain.

@@ -116,7 +116,7 @@ const camera = {
   worldX: 0,
   targetOffsetX: LOOK_AHEAD_DISTANCE,
   offsetX: LOOK_AHEAD_DISTANCE,
-  lerpSpeed: 0.05,
+  lerpSpeed: 0.02,
 };
 // functions
 const generate_terrain = (
@@ -300,67 +300,62 @@ const moveShipRadar = () => {
 };
 
 const fireLaser = () => {
+  const screenCenterX = shipCanvas.width / 2;
+  const shipRenderX = screenCenterX - 75 - camera.offsetX;
+
+  const noseX = facing === 1 ? shipRenderX + 150 : shipRenderX;
+  const noseY = shipYposition + 35;
+
   lasers.push({
-    startX: shipCanvas.width / 2 + 58,
-    startY: shipYposition + 37,
-    length: 1000,
-    timer: 1000,
-    speed: 50,
+    startX: noseX,
+    startY: noseY,
+    facing: facing,
+    length: 1500,
+    timer: 40,
   });
 };
 
-const drawDefenderLaser = (startX, startY, laserLength) => {
-  console.log('phew phew ... firing lasr --------- ZAP!');
-  // const laserLength = 800;
-  const segmentLength = 20;
+const drawDefenderLaser = (laser) => {
+  const segmentLength = 30;
   const colors = [
     '#FF0000',
     '#00FF00',
     '#00FFFF',
     '#FFFF00',
     '#FF00FF',
-    '#FFFFFF',
     '#000000',
   ];
 
-  // let startX = shipCanvas.width / 2 + 58;
-  let endX;
-
   shipCtx.lineWidth = 4;
-  facing === 1
-    ? (startX = shipCanvas.width / 2 + 58 - 650)
-    : (startX = shipCanvas.width / 2 - 58 + 500);
 
-  for (let i = lasers.length - 1; i >= 0; i--) {
-    let laser = lasers[i];
-    for (let x = 0; x < laserLength; x += segmentLength) {
-      shipCtx.strokeStyle = colors[Math.floor(Math.random() * colors.length)];
+  for (let x = 0; x < laser.length; x += segmentLength) {
+    shipCtx.strokeStyle = colors[Math.floor(Math.random() * colors.length)];
+    shipCtx.beginPath();
 
-      shipCtx.beginPath();
-      if (facing === 1) {
-        shipCtx.moveTo(startX + x, startY);
-        endX = Math.min(startX + x + segmentLength, startX + laserLength);
-      } else {
-        shipCtx.moveTo(startX - x, startY);
-        endX = Math.min(startX - x - segmentLength, startX - laserLength);
-      }
-      laser.timer--;
-
-      if (laser.timer <= 0) {
-        lasers.splice(i, 1);
-        continue;
-      }
-      shipCtx.lineTo(endX, startY);
-      shipCtx.stroke();
+    if (laser.facing === 1) {
+      const segStart = laser.startX + x;
+      const segEnd = Math.min(
+        segStart + segmentLength,
+        laser.startX + laser.length,
+      );
+      shipCtx.moveTo(segStart, laser.startY);
+      shipCtx.lineTo(segEnd, laser.startY);
+    } else {
+      const segStart = laser.startX - x;
+      const segEnd = Math.max(
+        segStart - segmentLength,
+        laser.startX - laser.length,
+      );
+      shipCtx.moveTo(segStart, laser.startY);
+      shipCtx.lineTo(segEnd, laser.startY);
     }
+
+    shipCtx.stroke();
   }
 };
-
 const updateAndDrawLasers = () => {
   for (let i = lasers.length - 1; i >= 0; i--) {
     let laser = lasers[i];
-
-    // laser.startX += laser.speed;
 
     laser.timer--;
 
@@ -368,7 +363,8 @@ const updateAndDrawLasers = () => {
       lasers.splice(i, 1);
       continue;
     }
-    drawDefenderLaser(laser.startX, laser.startY, laser.length);
+
+    drawDefenderLaser(laser);
   }
 };
 
