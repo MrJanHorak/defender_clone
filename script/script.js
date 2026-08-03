@@ -6,6 +6,9 @@ const LOOK_AHEAD_DISTANCE = 650;
 const shipSprite = new Image();
 shipSprite.src = 'assets/Spaceship (1).png';
 
+const humanoidSprite = new Image();
+humanoidSprite.src = 'assets/astronaut_spritesheet.png';
+
 class InputHandler {
   constructor() {
     this.keys = {};
@@ -207,20 +210,199 @@ class Laser {
 }
 
 class Humanoid {
-  constructor() {
-    this.alive = true;
-    this.aducted = false;
-    this.xlocation = 0;
-    this.ylocation = 0;
+  constructor(x, groundY) {
+    //location
+    this.x = x;
+    this.groundY = groundY;
+    this.y = groundY;
+    this.width = 24;
+    this.height = 36;
+
+    //human movement and physics
+    this.walkSpeed = 0.5;
+    this.walkDirection = Math.random() > 0.5 ? 1 : -1;
+    this.fallSpeed = 0;
+    this.gravity = 0.15;
+    this.terminalVelocity = 6;
+
+    this.totalFrames = 6;
+    this.currentFrame = 0;
+    this.animTimer = 0;
+    this.animSpeed = 15;
+
+    //state of human: 'WALKING', 'BEING_ABDUCTED', 'FALLING', 'CARRIED', 'DEAD'
+    this.state = 'WALKING';
+    this.carrier = null;
+
+    //score in different situations ... Need to do: double check actual arcade scores in WIKI
     this.rescueScore = 500;
+    this.catchScore = 500;
+    this.dropLandScroe = 500;
   }
 
-  walk() {
-    this.xlocation += 1; //currently just a placeholder as I scafold the class
+  //handle humanoid state
+
+  getAbductedBy(enemy) {
+    this.state = 'BEING_ABDUCTED';
+    this.carrier = enemy;
   }
 
-  fall() {
-    this.ylocation -= 2; //currently just a placeholder as I scafold the class
+  getDropped() {
+    this.state = 'FALLING';
+    this.carrier = null;
+    this.fallSpeed = 1;
+  }
+
+  getRescuedBy(ship) {
+    this.state = 'CARRIED';
+    this.carrier = ship;
+  }
+
+  landSafely() {
+    this.state = 'WALKING';
+    this.y = this.groundY;
+    this.fallSpeed = 0;
+    this.carrier = null;
+  }
+
+  die() {
+    this.state = 'DEAD';
+    this.carrier = null;
+  }
+
+  // helper function for collision detection
+  getBounds() {
+    return {
+      x: this.x,
+      y: this.y,
+      width: this.width,
+      height: this.height,
+    };
+  }
+
+  update(worldWidth, getTerrainYAt) {
+    switch (this.state) {
+      case 'WALKING':
+        // default humanoid behavior is pacing back and forth because that is what we all do when we are under attack :-)
+        this.x += this.walkSpeed * this.walkDirection;
+        this.x = ((this.x % worldWidth) + worldWidth) % worldWidth;
+
+        if (getTerrainYAt) {
+          const surfaceY = getTerrainYAt(this.x);
+          this.groundY = surfaceY - this.height;
+          this.y = this.groundY;
+        }
+
+        this.animTimer++;
+        if (this.animTimer >= this.animSpeed) {
+          this.currentFrame = (this.currentFrame + 1) % this.totalFrames;
+          this.animTimer = 0;
+        }
+
+        if (Math.random() < 0.002) {
+          this.walkDirection *= -1;
+        }
+        break;
+
+      case 'BEING_ABDUCTED':
+        if (this.carrier) {
+          this.x = this.carrier.x;
+          this.y = this.carrier.y + this.carrier.height;
+        } else {
+          this.getDropped();
+        }
+        break;
+
+      case 'FALLING':
+        this.fallSpeed = Math.min(
+          this.terminalVelocity,
+          this.fallSpeed + this.gravity,
+        );
+        this.y += this.fallSpeed;
+
+        // makesure the humanoid lands when the ground is near at a peak
+        if (getTerrainYAt) {
+          this.groundY = getTerrainYAt(this.x) - this.height;
+        }
+
+        // Fallspeed can be fatal so we need to check for it: 4 and greater is too fast
+        if (this.y >= this.groundY) {
+          if (this.fallSpeed > 4) {
+            this.die();
+          } else {
+            this.landSafely();
+          }
+        }
+        break;
+
+      case 'CARRIED':
+        if (this.carrier) {
+          this.x = this.carrier.x;
+          this.y = this.carrier.y + 35;
+
+          if (this.y >= this.groundY - 10) {
+            this.landSafely();
+          }
+        }
+        break;
+
+      case 'DEAD':
+        break;
+    }
+  }
+
+  draw(ctx, scrollX) {
+    if (this.state === 'DEAD' || !humanoidSprite.complete) return;
+
+    const screenX = this.x - scrollX;
+
+    const frameWidth = humanoidSprite.width / this.totalFrames;
+    const frameHeight = humanoidSprite.height;
+
+    const sourceX = this.currentFrame * frameWidth;
+
+    ctx.save();
+
+    if (this.walkDirection === -1) {
+      ctx.translate(screenX + this.width, this.y);
+      ctx.scale(-1, 1);
+
+      ctx.drawImage(
+        humanoidSprite,
+        sourceX,
+        0,
+        frameWidth,
+        frameHeight,
+        0,
+        0,
+        this.width,
+        this.height,
+      );
+    } else {
+      ctx.drawImage(
+        humanoidSprite,
+        sourceX,
+        0,
+        frameWidth,
+        frameHeight,
+        screenX,
+        this.y,
+        this.width,
+        this.height,
+      );
+    }
+
+    ctx.restore();
+  }
+
+  drawRadar(radarCtx, radarWidth, worldWidth, radarYScale) {
+    if (this.state === 'DEAD') return;
+
+    const radarX = (this.x / worldWidth) * radarWidth;
+    const radarY = this.y * radarYScale;
+
+    radarCtx.fillStyle = '#f4f7f4'; // Cyan/Green dot on radar
+    radarCtx.fillRect(radarX, radarY, 4, 8);
   }
 }
 
@@ -391,6 +573,7 @@ class GameManager {
     this.ship = new PlayerShip();
     this.camera = new Camera(LOOK_AHEAD_DISTANCE, 0.02);
 
+    this.totalHumanoids = 10;
     this.lasers = [];
     this.humanoids = [];
     this.landers = [];
@@ -529,6 +712,71 @@ class GameManager {
     this.radarCtx.stroke();
     this.gameFieldCtx1.stroke();
     this.gameFieldCtx2.stroke();
+    this.terrainPoints = points;
+  }
+
+  getTerrainYAt(x) {
+    if (!this.terrainPoints || this.terrainPoints.length === 0) {
+      return this.gameField.height - 100;
+    }
+
+    const percentX = (x / this.worldWidth) * 100;
+
+    for (let i = 0; i < this.terrainPoints.length - 1; i++) {
+      const p1 = this.terrainPoints[i];
+      const p2 = this.terrainPoints[i + 1];
+
+      const x1 = parseFloat(p1[0]);
+      const x2 = parseFloat(p2[0]);
+
+      if (percentX >= x1 && percentX <= x2) {
+        const y1 = (parseFloat(p1[1]) / 100) * this.gameField.height;
+        const y2 = (parseFloat(p2[1]) / 100) * this.gameField.height;
+
+        const t = (percentX - x1) / (x2 - x1);
+        return y1 + t * (y2 - y1);
+      }
+    }
+
+    return this.gameField.height - 100;
+  }
+
+  spawnHumanoids() {
+    this.humanoids = [];
+    const spacing = this.worldWidth / this.totalHumanoids;
+
+    for (let i = 0; i < this.totalHumanoids; i++) {
+      const margin = (Math.random() - 0.5) * 100;
+      const x = i * spacing + margin;
+      const surfaceY = this.getTerrainYAt(x);
+      const feetOnGroundY = surfaceY - 36;
+
+      this.humanoids.push(new Humanoid(x, feetOnGroundY));
+    }
+  }
+
+  updateAndDrawHumanoids() {
+    const radarYScale = this.radar.height / this.gameField.height;
+
+    for (let i = this.humanoids.length - 1; i >= 0; i--) {
+      const h = this.humanoids[i];
+
+      h.update(this.worldWidth, (x) => this.getTerrainYAt(x));
+
+      if (h.state === 'DEAD') {
+        this.humanoids.splice(i, 1);
+        continue;
+      }
+
+      h.draw(this.shipCtx, this.camera.scrollX);
+
+      h.drawRadar(
+        this.radarShipCtx,
+        this.radar.width,
+        this.worldWidth,
+        radarYScale,
+      );
+    }
   }
 
   fireLaser() {
@@ -638,6 +886,7 @@ class GameManager {
 
   start() {
     this.generateTerrain(0, 70, 100, 70, 2.5, 35);
+    this.spawnHumanoids();
     this.gameLoop();
   }
 
@@ -656,6 +905,7 @@ class GameManager {
     this.canvasStrip.style.transform = `translateX(${-this.camera.scrollX}px)`;
     this.moveShip();
     this.moveShipRadar();
+    this.updateAndDrawHumanoids();
     this.updateAndDrawLasers();
 
     requestAnimationFrame(() => this.gameLoop());
