@@ -401,7 +401,7 @@ class Humanoid {
     const radarX = (this.x / worldWidth) * radarWidth;
     const radarY = this.y * radarYScale;
 
-    radarCtx.fillStyle = '#f4f7f4'; // Cyan/Green dot on radar
+    radarCtx.fillStyle = '#f4f7f4'; //might update to sprite later
     radarCtx.fillRect(radarX, radarY, 4, 8);
   }
 }
