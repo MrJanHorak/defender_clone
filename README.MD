@@ -169,10 +169,10 @@ Here is a step-by-step path to programming the game:
 
 ### Phase 3: Humanoids & Landers
 *   [✓] Spawn static humanoids walking along the peaks and valleys of the terrain.
-*   [ ] Add Lander enemies with basic patrolling movement.
-*   [ ] Program the abduction state machine (Lander targeting, ascending with humanoid).
-*   [ ] Build collision detection between lasers/enemies and player/enemies.
-*   [ ] Implement catch-and-save logic for falling humanoids.
+*   [✓] Add Lander enemies with basic patrolling movement.
+*   [✓] Program the abduction state machine (Lander targeting, ascending with humanoid).
+*   [✓] Build collision detection between lasers/enemies and player/enemies.
+*   [✓] Implement catch-and-save logic for falling humanoids.
 
 ### Phase 4: Enemy Variety & AI
 *   [ ] Mutants (rapid chasing behavior).

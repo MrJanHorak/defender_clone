@@ -9,6 +9,9 @@ shipSprite.src = 'assets/Spaceship (1).png';
 const humanoidSprite = new Image();
 humanoidSprite.src = 'assets/astronaut_spritesheet.png';
 
+const landerSprite = new Image();
+landerSprite.src = 'assets/lander.png';
+
 class InputHandler {
   constructor() {
     this.keys = {};
@@ -28,6 +31,8 @@ class InputHandler {
 
     window.addEventListener('mousedown', (e) => {
       if (e.button === 0) this.mouse.leftPressed = true;
+      if (e.button === 1) this.mouse.middlePressed = true;
+      if (e.button === 2) this.mouse.rightPressed = true;
     });
 
     window.addEventListener('mouseup', (e) => {
@@ -70,11 +75,14 @@ class InputHandler {
 
 class PlayerShip {
   constructor() {
-    this.facing = 1; // 1 for right, -1 for left
+    this.facing = 1;
     this.velocity = 0;
     this.accelRate = 0.08;
     this.decelRate = 0.04;
     this.maxVelocity = 25;
+
+    this.width = 150;
+    this.height = 70;
 
     // Y-Axis Bounds & Position
     this.minY = -12;
@@ -114,6 +122,11 @@ class PlayerShip {
     }
   }
 
+  die() {
+    this.lives--;
+    console.log('You are no longer a player ... you dead!');
+  }
+
   reverse() {
     this.facing = -this.facing;
     this.velocity = -this.velocity;
@@ -129,11 +142,28 @@ class PlayerShip {
     this.radarY = Math.min(this.radarMaxY, this.radarY + 1.4);
   }
 
+  getWorldX(camera, worldWidth) {
+    const rawWorldX = camera.worldX - this.width / 2;
+    return ((rawWorldX % worldWidth) + worldWidth) % worldWidth;
+  }
+
+  getBounds(camera, worldWidth) {
+    const rawWorldX = camera.worldX - this.width / 2;
+    const worldX = ((rawWorldX % worldWidth) + worldWidth) % worldWidth;
+
+    return {
+      x: worldX,
+      y: this.y,
+      width: this.width,
+      height: this.height,
+    };
+  }
+
   getNosePosition(canvasWidth, cameraOffsetX) {
     const screenCenterX = canvasWidth / 2;
-    const shipRenderX = screenCenterX - 75 - cameraOffsetX;
-    const noseX = this.facing === 1 ? shipRenderX + 150 : shipRenderX;
-    const noseY = this.y + 35;
+    const shipRenderX = screenCenterX - this.width / 2 - cameraOffsetX;
+    const noseX = this.facing === 1 ? shipRenderX + this.width : shipRenderX;
+    const noseY = this.y + this.height / 2;
     return { x: noseX, y: noseY };
   }
 
@@ -174,20 +204,31 @@ class Laser {
     ];
   }
 
+  getBounds() {
+    const leftX = this.facing === 1 ? this.startX : this.startX - this.length;
+    return {
+      x: leftX,
+      y: this.startY - 2,
+      width: this.length,
+      height: 4,
+    };
+  }
+
   update() {
     this.timer--;
     return this.timer > 0;
   }
 
-  draw(ctx) {
+  draw(ctx, scrollX) {
     ctx.lineWidth = 4;
+    const screenStartX = this.startX - scrollX;
     for (let x = 0; x < this.length; x += this.segmentLength) {
       ctx.strokeStyle =
         this.colors[Math.floor(Math.random() * this.colors.length)];
       ctx.beginPath();
 
       if (this.facing === 1) {
-        const segStart = this.startX + x;
+        const segStart = screenStartX + x;
         const segEnd = Math.min(
           segStart + this.segmentLength,
           this.startX + this.length,
@@ -195,10 +236,10 @@ class Laser {
         ctx.moveTo(segStart, this.startY);
         ctx.lineTo(segEnd, this.startY);
       } else {
-        const segStart = this.startX - x;
+        const segStart = screenStartX - x;
         const segEnd = Math.max(
           segStart - this.segmentLength,
-          this.startX - this.length,
+          screenStartX - this.length,
         );
         ctx.moveTo(segStart, this.startY);
         ctx.lineTo(segEnd, this.startY);
@@ -222,7 +263,7 @@ class Humanoid {
     this.walkSpeed = 0.5;
     this.walkDirection = Math.random() > 0.5 ? 1 : -1;
     this.fallSpeed = 0;
-    this.gravity = 0.15;
+    this.gravity = 0.005;
     this.terminalVelocity = 6;
 
     this.totalFrames = 6;
@@ -250,7 +291,7 @@ class Humanoid {
   getDropped() {
     this.state = 'FALLING';
     this.carrier = null;
-    this.fallSpeed = 1;
+    this.fallSpeed = 0.06;
   }
 
   getRescuedBy(ship) {
@@ -306,7 +347,7 @@ class Humanoid {
 
       case 'BEING_ABDUCTED':
         if (this.carrier) {
-          this.x = this.carrier.x;
+          this.x = this.carrier.x + this.carrier.width / 2 - this.width / 2;
           this.y = this.carrier.y + this.carrier.height;
         } else {
           this.getDropped();
@@ -407,31 +448,181 @@ class Humanoid {
 }
 
 class Lander {
-  constructor() {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.width = 80;
+    this.height = 40;
+
+    this.vx = (Math.random() - 0.5) * 2;
+    this.vy = 0;
+    this.speed = 1.5;
+
+    this.state = 'PATROLLING'; // 'PATROLLING', 'DESCENDING', 'ABDUCTING', 'ASCENDING'
+    this.targetHumanoid = null;
     this.alive = true;
-    this.humanoidSpotted = true;
-    this.abucting = false;
-    this.killScore = 250;
+    this.killScore = 150;
+
+    this.lastShotTime = Date.now();
+    this.shootInterval = 3000 + Math.random() * 2000;
   }
 
-  shoot() {
-    console.log('zap zap');
+  getBounds() {
+    return {
+      x: this.x,
+      y: this.y,
+      width: this.width,
+      height: this.height,
+    };
   }
 
-  explode() {
-    console.log('BOOOOOOM!');
+  shoot(lasers, playerShip) {
+    const now = Date.now();
+    if (now - this.lastShotTime > this.shootInterval) {
+      this.lastShotTime = now;
+
+      const dx = playerShip.x - this.x;
+      const dy = playerShip.y - this.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      if (dist < 600) {
+        lasers.push({
+          x: this.x + this.width / 2,
+          y: this.y + this.height / 2,
+          vx: (dx / dist) * 5,
+          vy: (dy / dist) * 5,
+          isEnemy: true,
+        });
+      }
+    }
   }
 
-  patrolling() {
-    console.log('sweep back and forth');
+  findTargetHumanoid(humanoids) {
+    if (this.targetHumanoid) return;
+
+    let closestDist = Infinity;
+    let candidate = null;
+
+    for (const h of humanoids) {
+      if (h.state === 'WALKING') {
+        const dist = Math.abs(this.x - h.x);
+        if (dist < closestDist) {
+          closestDist = dist;
+          candidate = h;
+        }
+      }
+    }
+
+    if (candidate && closestDist < 800) {
+      this.targetHumanoid = candidate;
+      this.state = 'DESCENDING';
+    }
   }
 
-  descending() {
-    console.log('I spy a humanoid I can abduct!');
+  update(worldWidth, humanoids, gameManager) {
+    if (!this.alive) return;
+
+    switch (this.state) {
+      case 'PATROLLING':
+        this.x += this.vx;
+        this.x = ((this.x % worldWidth) + worldWidth) % worldWidth;
+
+        if (gameManager) {
+          const terrainY = gameManager.getTerrainYAt(this.x);
+          if (this.y > terrainY - 60) {
+            this.y = terrainY - 60;
+          }
+        }
+
+        this.findTargetHumanoid(humanoids);
+        break;
+
+      case 'DESCENDING':
+        if (!this.targetHumanoid || this.targetHumanoid.state !== 'WALKING') {
+          this.targetHumanoid = null;
+          this.state = 'PATROLLING';
+          break;
+        }
+
+        const dx = this.targetHumanoid.x - this.x;
+        if (Math.abs(dx) > 5) {
+          this.x += Math.sign(dx) * this.speed;
+        }
+
+        const targetY = this.targetHumanoid.y - this.height;
+        const dy = targetY - this.y;
+
+        if (Math.abs(dy) > 2) {
+          this.y += Math.sign(dy) * this.speed;
+        }
+
+        if (gameManager) {
+          const maxAllowedY = gameManager.getTerrainYAt(this.x) - this.height;
+          if (this.y > maxAllowedY) {
+            this.y = maxAllowedY;
+          }
+        }
+
+        if (
+          Math.abs(this.x - this.targetHumanoid.x) < 25 &&
+          Math.abs(this.y - targetY) < 15
+        ) {
+          this.state = 'ABDUCTING';
+          this.targetHumanoid.getAbductedBy(this);
+        }
+        break;
+
+      case 'ABDUCTING':
+      case 'ASCENDING':
+        if (this.targetHumanoid) {
+          this.y -= this.speed * 0.3;
+
+          if (this.y <= 10) {
+            this.mutate(gameManager);
+          }
+        } else {
+          this.state = 'PATROLLING';
+        }
+        break;
+    }
   }
 
-  ascending() {
-    console.log('Trying to reach the top to Mutate!');
+  mutate(gameManager) {
+    if (this.targetHumanoid) {
+      this.targetHumanoid.die();
+    }
+
+    this.alive = false;
+    gameManager.spawnMutant(this.x, this.y);
+    console.log('MUTATION COMPLETE! A Mutant has been spawned!');
+  }
+
+  die(gameManager) {
+    this.alive = false;
+
+    if (this.targetHumanoid && this.targetHumanoid.carrier === this) {
+      this.targetHumanoid.getDropped();
+    }
+  }
+
+  draw(ctx, scrollX) {
+    if (!this.alive || !landerSprite.complete) return;
+
+    const screenX = this.x - scrollX;
+
+    ctx.save();
+    ctx.drawImage(landerSprite, screenX, this.y, this.width, this.height);
+    ctx.restore();
+  }
+
+  drawRadar(radarCtx, radarWidth, worldWidth, radarYScale) {
+    if (!this.alive) return;
+
+    const radarX = (this.x / worldWidth) * radarWidth;
+    const radarY = this.y * radarYScale;
+
+    radarCtx.fillStyle = '#00FF00';
+    radarCtx.fillRect(radarX, radarY, 15, 5);
   }
 }
 
@@ -779,6 +970,52 @@ class GameManager {
     }
   }
 
+  spawnLanders(count = 5) {
+    this.landers = [];
+    for (let i = 0; i < count; i++) {
+      const x = Math.random() * this.worldWidth;
+      const y = 100 + Math.random() * 200;
+      this.landers.push(new Lander(x, y));
+    }
+  }
+
+  updateAndDrawLanders() {
+    const radarYScale = this.radar.height / this.gameField.height;
+
+    for (let i = this.landers.length - 1; i >= 0; i--) {
+      const lander = this.landers[i];
+
+      if (!lander.alive) {
+        this.landers.splice(i, 1);
+        continue;
+      }
+
+      lander.update(this.worldWidth, this.humanoids, this);
+      lander.draw(this.shipCtx, this.camera.scrollX);
+      lander.drawRadar(
+        this.radarShipCtx,
+        this.radar.width,
+        this.worldWidth,
+        radarYScale,
+      );
+    }
+  }
+
+  getLanderStateCounts() {
+    const counts = { PATROLLING: 0, DESCENDING: 0, ABDUCTING: 0, ASCENDING: 0 };
+    for (const lander of this.landers) {
+      if (lander.alive && counts[lander.state] !== undefined) {
+        counts[lander.state]++;
+      }
+    }
+    return counts;
+  }
+
+  spawnMutant(x, y) {
+    // Add a Mutant instance to this.mutants array once your Mutant class is ready
+    console.log(`Spawning Mutant at X:${x}, Y:${y}`);
+  }
+
   fireLaser() {
     const now = Date.now();
     if (now - this.lastShotTime < this.fireRateCooldown) return;
@@ -788,7 +1025,11 @@ class GameManager {
       this.shipCanvas.width,
       this.camera.offsetX,
     );
-    this.lasers.push(new Laser(nosePos.x, nosePos.y, this.ship.facing));
+    const rawWorldNoseX = nosePos.x + this.camera.scrollX;
+    const worldNoseX =
+      ((rawWorldNoseX % this.worldWidth) + this.worldWidth) % this.worldWidth;
+
+    this.lasers.push(new Laser(worldNoseX, nosePos.y, this.ship.facing));
   }
 
   drawRadarViewportBox() {
@@ -858,7 +1099,7 @@ class GameManager {
         this.lasers.splice(i, 1);
         continue;
       }
-      laser.draw(this.shipCtx);
+      laser.draw(this.shipCtx, this.camera.scrollX);
     }
   }
 
@@ -884,9 +1125,179 @@ class GameManager {
     if (this.input.isActivatingWarp()) this.ship.activateWarp();
   }
 
+  checkCollisions() {
+    this.checkLaserVsEnemies();
+    this.checkLaserVsHumanoids();
+    this.checkPlayerVsEnemies();
+    this.checkPlayerVsHumanoids();
+    this.checkEnemiesVsHumanoids();
+  }
+
+  isColliding(rect1, rect2) {
+    return (
+      rect1.x < rect2.x + rect2.width &&
+      rect1.x + rect1.width > rect2.x &&
+      rect1.y < rect2.y + rect2.height &&
+      rect1.y + rect1.height > rect2.y
+    );
+  }
+
+  wrapRectToWorld(rect) {
+    if (this.worldWidth <= 0) return [rect];
+
+    const safeWidth = Math.min(rect.width, this.worldWidth);
+    let x = ((rect.x % this.worldWidth) + this.worldWidth) % this.worldWidth;
+
+    if (safeWidth >= this.worldWidth) {
+      return [
+        {
+          x: 0,
+          y: rect.y,
+          width: this.worldWidth,
+          height: rect.height,
+        },
+      ];
+    }
+
+    const end = x + safeWidth;
+    if (end <= this.worldWidth) {
+      return [
+        {
+          x,
+          y: rect.y,
+          width: safeWidth,
+          height: rect.height,
+        },
+      ];
+    }
+
+    return [
+      {
+        x,
+        y: rect.y,
+        width: this.worldWidth - x,
+        height: rect.height,
+      },
+      {
+        x: 0,
+        y: rect.y,
+        width: end - this.worldWidth,
+        height: rect.height,
+      },
+    ];
+  }
+
+  isCollidingWorld(rect1, rect2) {
+    const rect1Parts = this.wrapRectToWorld(rect1);
+    const rect2Parts = this.wrapRectToWorld(rect2);
+
+    for (const a of rect1Parts) {
+      for (const b of rect2Parts) {
+        if (this.isColliding(a, b)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  checkLaserVsEnemies() {
+    for (let l = this.lasers.length - 1; l >= 0; l--) {
+      const laser = this.lasers[l];
+
+      for (let e = this.landers.length - 1; e >= 0; e--) {
+        const enemy = this.landers[e];
+
+        if (this.isCollidingWorld(laser.getBounds(), enemy.getBounds())) {
+          console.log('Laser is hitting enemy!');
+          enemy.die();
+          this.lasers.splice(l, 1);
+          this.score += enemy.killScore;
+          break;
+        }
+      }
+    }
+  }
+
+  checkEnemiesVsHumanoids() {
+    for (const lander of this.landers) {
+      if (lander.state === 'ABDUCTING' || lander.state === 'ASCENDING')
+        continue;
+
+      for (const humanoid of this.humanoids) {
+        if (
+          humanoid.state === 'WALKING' &&
+          this.isCollidingWorld(lander.getBounds(), humanoid.getBounds())
+        ) {
+          lander.state = 'ABDUCTING';
+          humanoid.getAbductedBy(lander);
+          break;
+        }
+      }
+    }
+  }
+
+  checkPlayerVsHumanoids() {
+    const baseBounds = this.ship.getBounds(this.camera, this.worldWidth);
+    const catchBounds = {
+      x: baseBounds.x - 10,
+      y: baseBounds.y - 10,
+      width: baseBounds.width + 20,
+      height: baseBounds.height + 20,
+    };
+
+    for (let h = this.humanoids.length - 1; h >= 0; h--) {
+      const humanoid = this.humanoids[h];
+
+      if (
+        humanoid.state === 'FALLING' &&
+        this.isCollidingWorld(catchBounds, humanoid.getBounds())
+      ) {
+        console.log('ship should rescue humanoid');
+        humanoid.getRescuedBy(this.ship);
+        this.score += 500;
+      }
+    }
+  }
+
+  checkPlayerVsEnemies() {
+    const playerBounds = this.ship.getBounds(this.camera, this.worldWidth);
+
+    for (const lander of this.landers) {
+      if (this.isCollidingWorld(playerBounds, lander.getBounds())) {
+        console.log('player colliding with enemy');
+        this.ship.die();
+        lander.die();
+        if (this.ship.lives <= 0) {
+          this.state = 'GAME_OVER';
+        }
+        break;
+      }
+    }
+  }
+
+  checkLaserVsHumanoids() {
+    for (let l = this.lasers.length - 1; l >= 0; l--) {
+      const laser = this.lasers[l];
+
+      for (let h = this.humanoids.length - 1; h >= 0; h--) {
+        const humanoid = this.humanoids[h];
+
+        if (this.isCollidingWorld(laser.getBounds(), humanoid.getBounds())) {
+          humanoid.die();
+          this.lasers.splice(l, 1);
+          this.score -= humanoid.catchScore;
+          break;
+        }
+      }
+    }
+  }
+
   start() {
     this.generateTerrain(0, 70, 100, 70, 2.5, 35);
     this.spawnHumanoids();
+    this.spawnLanders(10);
     this.gameLoop();
   }
 
@@ -906,7 +1317,10 @@ class GameManager {
     this.moveShip();
     this.moveShipRadar();
     this.updateAndDrawHumanoids();
+    this.updateAndDrawLanders();
     this.updateAndDrawLasers();
+
+    this.checkCollisions();
 
     requestAnimationFrame(() => this.gameLoop());
   }
