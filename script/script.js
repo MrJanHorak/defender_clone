@@ -206,6 +206,161 @@ class Laser {
   }
 }
 
+class Humanoid {
+  constructor() {
+    this.alive = true;
+    this.aducted = false;
+    this.xlocation = 0;
+    this.ylocation = 0;
+    this.rescueScore = 500;
+  }
+
+  walk() {
+    this.xlocation += 1; //currently just a placeholder as I scafold the class
+  }
+
+  fall() {
+    this.ylocation -= 2; //currently just a placeholder as I scafold the class
+  }
+}
+
+class Lander {
+  constructor() {
+    this.alive = true;
+    this.humanoidSpotted = true;
+    this.abucting = false;
+    this.killScore = 250;
+  }
+
+  shoot() {
+    console.log('zap zap');
+  }
+
+  explode() {
+    console.log('BOOOOOOM!');
+  }
+
+  patrolling() {
+    console.log('sweep back and forth');
+  }
+
+  descending() {
+    console.log('I spy a humanoid I can abduct!');
+  }
+
+  ascending() {
+    console.log('Trying to reach the top to Mutate!');
+  }
+}
+
+class Mutant {
+  constructor() {
+    this.alive = true;
+    this.killScore = 250;
+  }
+
+  shoot() {
+    console.log('zap zap');
+  }
+
+  explode() {
+    console.log('BOOOOOOM!');
+  }
+
+  patrolling() {
+    console.log('sweep back and forth');
+  }
+
+  descending() {
+    console.log('I spy a humanoid I can abduct!');
+  }
+
+  ascending() {
+    console.log('Trying to reach the top to Mutate!');
+  }
+}
+
+class Pod {
+  constructor() {
+    this.alive = true;
+    this.killScore = 250;
+  }
+
+  shoot() {
+    console.log('zap zap');
+  }
+
+  explode() {
+    console.log('BOOOOOOM!');
+  }
+
+  patrolling() {
+    console.log('sweep back and forth');
+  }
+
+  descending() {
+    console.log('I spy a humanoid I can abduct!');
+  }
+
+  ascending() {
+    console.log('Trying to reach the top to Mutate!');
+  }
+}
+
+class Swarmer {
+  constructor() {
+    this.alive = true;
+    this.killScore = 250;
+  }
+
+  shoot() {
+    console.log('zap zap');
+  }
+
+  explode() {
+    console.log('BOOOOOOM!');
+  }
+
+  patrolling() {
+    console.log('sweep back and forth');
+  }
+
+  descending() {
+    console.log('I spy a humanoid I can abduct!');
+  }
+
+  ascending() {
+    console.log('Trying to reach the top to Mutate!');
+  }
+}
+
+class Bomber {
+  constructor() {
+    this.alive = true;
+    this.killScore = 250;
+  }
+
+  shoot() {
+    console.log('zap zap');
+  }
+
+  explode() {
+    console.log('BOOOOOOM!');
+  }
+
+  patrolling() {
+    console.log('sweep back and forth');
+  }
+
+  descending() {
+    console.log('I spy a humanoid I can abduct!');
+  }
+
+  ascending() {
+    console.log('Trying to reach the top to Mutate!');
+  }
+}
+
 class Camera {
   constructor(lookAheadDistance, lerpSpeed) {
     this.worldX = 0;
@@ -238,6 +393,11 @@ class GameManager {
 
     this.lasers = [];
     this.humanoids = [];
+    this.landers = [];
+    this.mutants = [];
+    this.pods = [];
+    this.swarmers = [];
+    this.bombers = [];
 
     this.score = 0;
     this.activeLevel = 1;
