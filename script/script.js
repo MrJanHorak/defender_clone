@@ -814,6 +814,10 @@ class GameManager {
     this.canvasStrip.id = 'canvas-strip';
     this.viewport.appendChild(this.canvasStrip);
 
+    this.starField = document.createElement('div');
+    this.starField.id = 'star-field';
+    this.canvasStrip.appendChild(this.starField)
+
     this.gameField = document.createElement('canvas');
     this.gameField.className = 'game-panel';
     this.canvasStrip.appendChild(this.gameField);
